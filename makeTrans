@@ -1,0 +1,17 @@
+import cv2 as cv
+import numpy as np
+from matplotlib import pyplot as plt
+import os
+
+folder = "Risk_Cropped_Outlines"
+img_names = os.listdir(folder)[1:]
+print(img_names)
+# print("Images:", img_names)
+
+# for img_name in img_names:
+# 	print("Combining", img_name)
+# 	im = cv.imread(folder + "/" + img_name, cv.IMREAD_UNCHANGED)
+# 	x,y,w,h = cv.boundingRect(cv.findNonZero(im[:,:,0]))
+# 	cv.imwrite("Risk_Cropped_Outlines" + "/" + str(x) + "x" + str(y) + "-" + str(w) + "x" + str(h) + "_" + img_name, im[y:y+h, x:x+w])
+
+# cv.imwrite("total_imgs.png", im)
