@@ -36,6 +36,9 @@ if ($username != "" and $password != "") {
 
 			echo mysqli_fetch_row($me)[0];
 		}
+
+		header('Location: index.html');
+		echo "bap";
 	} else if (isset($_POST['login'])) {
 		echo "Returning user <br/>";
 
@@ -49,6 +52,9 @@ if ($username != "" and $password != "") {
 		} else {
 			echo mysqli_fetch_row($me)[0];
 		}
+
+		header('Location: index.html');
+		echo "bap";
 	} else {
 		echo "Unknown method.";
 	}
