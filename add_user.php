@@ -9,8 +9,6 @@ $username = $_GET['name'];
 $password = $_GET['pass']; 
 
 if ($username != "" and $password != "") {
-	echo "Valid username and password detected. <br/>";
-
 	$stmt = $accounts->prepare("SELECT * FROM players WHERE `user_name`= ?");
 	$stmt->bind_param('s', $username);
 	$stmt->execute();
@@ -19,6 +17,8 @@ if ($username != "" and $password != "") {
 	if (mysqli_num_rows($me) != 0) {
 		echo "User already exists.";
 	} else {
+		echo "Adding username and password to users list. <br/>";
+
 		$stmt = $accounts->prepare("INSERT INTO players (user_name,user_password) VALUES(?, ?)");
 		$stmt->bind_param('ss', $username, $password);
 		$stmt->execute();
