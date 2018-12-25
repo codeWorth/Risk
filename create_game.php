@@ -1,5 +1,8 @@
 <?php
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
 
 $game_name = $_POST['name'];
@@ -11,8 +14,5 @@ if ($game_name != "") {
 	$stmt->bind_param('ssi', $username, $game_pass, $max_players);
 	$stmt->execute();
 }
-
-header('Location: handle_user.php');
-exit();
 
 ?>
