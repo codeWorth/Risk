@@ -13,6 +13,8 @@ $password = $_GET['pass'];
 
 if ($username != "" and $password != "") {
 	if ($_GET['new']) {
+		echo "New user. <br/>";
+
 		$stmt = $db->prepare("SELECT * FROM players WHERE `user_name`= ?");
 		$stmt->bind_param('s', $username);
 		$stmt->execute();
@@ -30,6 +32,8 @@ if ($username != "" and $password != "") {
 			echo $res;
 		}
 	} else if ($_GET['login']) {
+		echo "Returning user <br/>";
+
 		$stmt = $db->prepare("SELECT `user_id` FROM players WHERE `user_name`=? AND `user_password`=?");
 		$stmt->bind_param('ss', $username, $password);
 		$stmt->execute();
