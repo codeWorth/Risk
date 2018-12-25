@@ -246,7 +246,7 @@
 			<div id="center">
 				<h2>Create Game</h2>
 
-				<form action="create_game.php" method="POST">
+				<form action="create_game.php" method="GET">
 					<h4>Lobby Name</h4>
 					<input id="username" type="text" placeholder="Enter Name" name="name" class="input_box"> <br/>
 
