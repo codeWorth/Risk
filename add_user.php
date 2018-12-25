@@ -1,7 +1,7 @@
 <?php
 
 echo "Connecting to database... <br/>";
-$db = mysqli_connect("localhost", "risk_game", "PLACEHOLDER", "riskdb");
+$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
 
 echo "Connected to database. <br/>";
 
