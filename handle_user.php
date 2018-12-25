@@ -12,7 +12,7 @@ $username = $_GET['name'];
 $password = $_GET['pass']; 
 
 if ($username != "" and $password != "") {
-	if ($_GET['new']) {
+	if (isset($_GET['new'])) {
 		echo "New user. <br/>";
 
 		$stmt = $db->prepare("SELECT * FROM players WHERE `user_name`= ?");
@@ -31,7 +31,7 @@ if ($username != "" and $password != "") {
 			echo "Added user to players.";
 			echo $res;
 		}
-	} else if ($_GET['login']) {
+	} else if (isset($_GET['login'])) {
 		echo "Returning user <br/>";
 
 		$stmt = $db->prepare("SELECT `user_id` FROM players WHERE `user_name`=? AND `user_password`=?");
@@ -44,6 +44,8 @@ if ($username != "" and $password != "") {
 		} else {
 			echo mysqli_fetch_row($me)[0];
 		}
+	} else {
+		echo "Unknown method.";
 	}
 } else {
 	echo "Invalid username and password (cannot be empty).";
