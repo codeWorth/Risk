@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 	<head>
-		<title>Risk Online - Game Viewer</title>
+		<title>TEST PAGE</title>
+
 		<style>
 
 			html, body {
@@ -178,70 +180,6 @@
 
 	<body>
 
-		<div id="info" style="display: none;"><?php
-
-			$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
-
-			$username = $_POST['name'];
-			$password = $_POST['pass']; 
-
-			$user_id = $_POST['enc_pass'];
-
-			if (isset($user_id)) {
-				echo $user_id;
-			} else {
-				if ($username != "" and $password != "") {
-					if (isset($_POST['new'])) {
-
-						$stmt = $db->prepare("SELECT * FROM players WHERE `user_name`= ?");
-						$stmt->bind_param('s', $username);
-						$stmt->execute();
-						$me = $stmt->get_result();
-
-						if (mysqli_num_rows($me) != 0) {
-							echo "exists";
-						} else {
-							$stmt = $db->prepare("INSERT INTO players (user_name,user_password) VALUES(?, SHA2(?, 256));");
-							$stmt->bind_param('ss', $username, $password);
-							$stmt->execute();
-
-							$stmt = $db->prepare("SELECT `user_id`, `user_password` FROM players WHERE `user_name`=? AND `user_password`=SHA2(?, 256);");
-							$stmt->bind_param('ss', $username, $password);
-							$stmt->execute();
-							$me = $stmt->get_result();
-
-							$row = mysqli_fetch_row($me);
-
-							echo $row[0];
-							echo ",";
-							echo $row[1];
-						}
-
-					} else if (isset($_POST['login'])) {
-						$stmt = $db->prepare("SELECT `user_id`, `user_password` FROM players WHERE `user_name`=? AND `user_password`=SHA2(?, 256);");
-						$stmt->bind_param('ss', $username, $password);
-						$stmt->execute();
-						$me = $stmt->get_result();
-
-						if (mysqli_num_rows($me) == 0) {
-							echo "-1";
-						} else {
-							$row = mysqli_fetch_row($me);
-							echo $row[0];
-							echo ",";
-							echo $row[1];
-						}
-
-					} else {
-						echo "invalid";
-					}
-				} else {
-					echo "invalid";
-				}
-			}
-
-		?></div>
-
 		<div id="game_create" class="hide">
 			<div id="center">
 				<h2>Create Game</h2>
@@ -282,18 +220,6 @@
 		</div>
 
 		<script>
-
-			var data = document.getElementById("info").textContent;
-
-			if (data == "invalid") {
-				window.location.replace("index.html");
-			} else if (data == "-1") {
-				document.write("Unknown username and password combination.");
-			} else {
-				var parts = data.split(",");
-				user_id = parseInt(data[0]);
-				var enc_pass = data[1];
-			}
 
 			var game_create_window = $("#game_create");
 			game_create_window.hide();
