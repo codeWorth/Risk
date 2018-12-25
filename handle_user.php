@@ -26,10 +26,15 @@ if ($username != "" and $password != "") {
 			$stmt = $db->prepare("INSERT INTO players (user_name,user_password) VALUES(?, ?)");
 			$stmt->bind_param('ss', $username, $password);
 			$stmt->execute();
-			$res = $stmt->get_result();
 
 			echo "Added user to players.";
-			echo $res;
+
+			$stmt = $db->prepare("SELECT `user_id` FROM players WHERE `user_name`=? AND `user_password`=?");
+			$stmt->bind_param('ss', $username, $password);
+			$stmt->execute();
+			$me = $stmt->get_result();
+
+			echo mysqli_fetch_row($me)[0];
 		}
 	} else if (isset($_POST['login'])) {
 		echo "Returning user <br/>";
