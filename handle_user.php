@@ -246,7 +246,7 @@
 			<div id="center">
 				<h2>Create Game</h2>
 
-				<form action="create_game.php" method="POST">
+				<form id="create_form">
 					<h4>Lobby Name</h4>
 					<input id="username" type="text" placeholder="Enter Name" name="name" class="input_box"> <br/>
 
@@ -256,7 +256,7 @@
 					<h4>Maximum Players</h4>
 					<input type="number" id="players" name="players" min="3" max="8" value="5">
 
-					<button id="create" type="submit">Create</button>
+					<button id="create">Create</button>
 				</form>
 				<button id="cancel" onclick="game_create_window.hide()">Cancel</button>
 			</div>
@@ -373,6 +373,15 @@
 				show_browse();
 				show_joined();
 			});
+
+			$("#game_create $create").onclick = function () {
+				$.post("create_game.php", $("#create_form").serialize(), function(data) {
+					alert("WORKED");
+					show_browse();
+					show_joined();
+					game_create_window.hide();
+				});
+			}
 
 			show_browse();
 			show_joined();
