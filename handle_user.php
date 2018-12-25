@@ -8,11 +8,11 @@ echo "Connecting to database... <br/>";
 $db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
 
 
-$username = $_GET['name'];
-$password = $_GET['pass']; 
+$username = $_POST['name'];
+$password = $_POST['pass']; 
 
 if ($username != "" and $password != "") {
-	if (isset($_GET['new'])) {
+	if (isset($_POST['new'])) {
 		echo "New user. <br/>";
 
 		$stmt = $db->prepare("SELECT * FROM players WHERE `user_name`= ?");
@@ -31,7 +31,7 @@ if ($username != "" and $password != "") {
 			echo "Added user to players.";
 			echo $res;
 		}
-	} else if (isset($_GET['login'])) {
+	} else if (isset($_POST['login'])) {
 		echo "Returning user <br/>";
 
 		$stmt = $db->prepare("SELECT `user_id` FROM players WHERE `user_name`=? AND `user_password`=?");
