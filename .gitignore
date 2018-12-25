@@ -1,5 +1,6 @@
 *.png
 *.pem
+SQL_user.txt
 
 # Compiled source #
 ###################
