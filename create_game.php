@@ -25,7 +25,8 @@ if ($game_name != "") {
 	$res = $stmt->get_result();
 	echo $res;
 
-	echo "   DONE";
+	echo "   BAM  ";
+	echo mysqli_error($db);
 }
 
 ?>
