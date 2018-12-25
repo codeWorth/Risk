@@ -374,7 +374,7 @@
 				show_joined();
 			});
 
-			$("#game_create $create").onclick = function () {
+			$("#game_create #create").onclick = function () {
 				$.post("create_game.php", $("#create_form").serialize(), function(data) {
 					alert("WORKED");
 					show_browse();
