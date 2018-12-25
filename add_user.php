@@ -9,6 +9,8 @@ $username = $_GET['name'];
 $password = $_GET['pass']; 
 
 if ($username != "" and $password != "") {
+	echo "Valid username and password detected. <br/>";
+
 	$stmt = $accounts->prepare("SELECT * FROM players WHERE `user_name`= ?");
 	$stmt->bind_param('s', $username);
 	$stmt->execute();
