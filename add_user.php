@@ -3,7 +3,7 @@
 echo "Connecting to database... <br/>";
 $db = mysqli_connect("localhost", "risk_game", "PLACEHOLDER", "riskdb");
 
-echo "Connected to database <br/>";
+echo "Connected to database. <br/>";
 
 $username = $_GET['name'];
 $password = $_GET['pass']; 
@@ -20,9 +20,13 @@ if ($username != "" and $password != "") {
 		$stmt = $accounts->prepare("INSERT INTO players (user_name,user_password) VALUES(?, ?)");
 		$stmt->bind_param('ss', $username, $password);
 		$stmt->execute();
+		$res = $stmt->get_result();
 
 		echo "Added user to players.";
+		echo $res;
 	}
+} else {
+	echo "Invalid username and password (cannot be empty).";
 }
 
 ?>
