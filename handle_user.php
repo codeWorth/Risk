@@ -18,7 +18,14 @@
 
 			#refresh {
 				position: absolute;
-				top: 23px;
+				top: 33px;
+				width: 60px;
+				left: calc(50% - 30px);
+			}
+
+			#logout {
+				position: absolute;
+				top: 8px;
 				width: 60px;
 				left: calc(50% - 30px);
 			}
@@ -171,6 +178,73 @@
 				margin-top: 10px;
 			}
 
+
+
+			#enter_password {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(64, 64, 64, 0.75);
+				z-index: 10;
+			}
+
+			#enter_password #center {
+				margin: auto;
+				margin-top: 50px;
+				width: 300px;
+				height: 200px;
+				border: 1px solid black;
+				background-color: white;
+				position: relative;
+			}
+
+			#enter_password h2 {
+				width: 100%;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+
+			#enter_password h4 {
+				margin: auto;
+				width: 100%;
+				text-align: center;
+				margin-bottom: 5px;
+			}
+
+			#enter_password .input_box {
+				margin-left: 67px;
+				margin-right: 67px;
+				width: 160px;
+				margin-top: 0px;
+				margin-bottom: 30px;
+			}
+
+			#enter_password #incorrect {
+				display: none;
+				position: absolute;
+				width: 100%;
+				text-align: center;
+				left: 0px;
+				top: 100px;
+				font-size: 10pt;
+				color: red;
+			}
+
+			#enter_password #join {
+				width: 60px;
+				margin: 0 auto;
+				display: block;
+			}
+
+			#enter_password #cancel {
+				width: 60px;
+				margin: 0 auto;
+				display: block;
+				margin-top: 10px;
+			}
+
 		</style>
 
 		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -242,7 +316,7 @@
 
 		?></div>
 
-		<div id="game_create" class="hide">
+		<div id="game_create">
 			<div id="center">
 				<h2>Create Game</h2>
 
@@ -255,15 +329,26 @@
 
 					<h4>Maximum Players</h4>
 					<input type="number" id="players" name="players" min="3" max="8" value="5">
-
-					<button id="create">Create</button>
 				</form>
-				<button id="cancel" onclick="game_create_window.hide()">Cancel</button>
+				<button id="create">Create</button>
+				<button id="cancel" onclick="game_create_window.hide(); ">Cancel</button>
+			</div>
+		</div>
+
+		<div id="enter_password">
+			<div id="center">
+				<h2>Join [Game Name]</h2>
+				<h4>Enter Password</h4>
+				<input id="password" type="password" placeholder="Enter Password" class="input_box"> <br/>
+				<p id="incorrect">Incorrect Password</p>
+				<button id="join">Join</button>
+				<button id="cancel" onclick="password_enter_window.hide(); incorrect_text.hide();">Cancel</button>
 			</div>
 		</div>
 
 		<div id="content">
 			<button id="refresh">Refresh</button>
+			<button id="logout" onclick="window.location.href = 'index.html';">Log Out</button>
 
 			<div id="browse">
 				<h1>Available Games</h1>
@@ -291,26 +376,98 @@
 				document.write("Unknown username and password combination.");
 			} else {
 				var parts = data.split(",");
-				user_id = parseInt(data[0]);
+				var user_id = data[0];
 				var enc_pass = data[1];
 			}
 
 			var game_create_window = $("#game_create");
 			game_create_window.hide();
 
+			var password_enter_window = $("#enter_password");
+			var incorrect_text = $("#enter_password #incorrect");
+			password_enter_window.hide();
+
+			var selectBrowse = -1;
+
 			var browse_list = $("#browse_list");
 			var joined_list = $("#joined_list");
 
-			var browse_names = ["game1", "super cool game!", "epic1"];
-			var browse_pass = ["", "suckydicky", "gamer"];
-			var browse_players = [4, 0, 3];
-			var browse_wanted_players = [5, 4, 5];
+			var browse_names = [];
+			var browse_pass = [];
+			var browse_players = [];
+			var browse_wanted_players = [];
 
-			var joined_names = ["lame-o", "coolio"];
-			var joined_host = [true, false];
-			var joined_players = [5, 5];
-			var joined_wanted_players = [5, 6];
-			var joined_started = [true, false];
+			var joined_names = [];
+			var joined_host = [];
+			var joined_players = [];
+			var joined_wanted_players = [];
+			var joined_started = [];
+
+			function joinSelected() {
+				var data = {name:browse_names[selectBrowse], pass:$("#enter_password #password").val(), uid:user_id};
+				$.post("join_game.php", data, function(data) {
+					if (data === "filled") {
+						alert("Game lobby already filled.");
+						password_enter_window.hide();
+						refresh();
+					} else if (data === "already") {
+						password_enter_window.hide();
+						refresh();
+					} else if (data === "notexist") {
+						incorrect_text.show();
+					} else {
+						incorrect_text.hide();
+						password_enter_window.hide();
+						refresh();
+					}
+				});
+			}
+
+			function refresh() {
+				browse_names = [];
+				browse_pass = [];
+				browse_players = [];
+				browse_wanted_players = [];
+
+				joined_names = [];
+				joined_host = [];
+				joined_players = [];
+				joined_wanted_players = [];
+				joined_started = [];
+
+				$.post("game_data.php", function(data) {
+					lobbies = data.split("~~");
+					lobby_count = lobbies.length-1;
+
+					for (var i = 0; i < lobby_count; i++) {
+						lobby = lobbies[i].split("||");
+
+						var id = parseInt(lobby[0]);
+						var name = lobby[1];
+						var pass = lobby[2];
+						var ready = lobby[3] === "1";
+						var players_wanted = parseInt(lobby[4]);
+						var ids = lobby[5].split(",");
+						ids.splice(ids.length-1, 1);
+
+						if (ids.includes(user_id)) {
+							joined_names.push(name);
+							joined_host.push(ids[0] === user_id);
+							joined_players.push(ids.length);
+							joined_wanted_players.push(players_wanted);
+							joined_started.push(ready);
+						} else if (!ready) {
+							browse_names.push(name);
+							browse_pass.push(pass === "1");
+							browse_players.push(ids.length);
+							browse_wanted_players.push(players_wanted);
+						}
+					}
+
+					show_browse();
+					show_joined();
+				});
+			}
 
 			function show_create() {
 				$("#game_create #password").val("");
@@ -331,7 +488,19 @@
 						new_item.append("<p>Requires Password: No</p>");
 					}
 					new_item.append("<p>Players: " + browse_players[i].toString() + " / " + browse_wanted_players[i].toString() + " </p>");
-					new_item.append("<button class='mainbutton'>Join</button>");
+
+					var joinButton = $("<button class='mainbutton'>Join</button>");
+					joinButton.val(i.toString());
+					joinButton.click(function (e) {
+						selectBrowse = parseInt(e.target.value);
+						if (browse_pass[selectBrowse].length === 0) {
+							joinSelected();
+						} else {
+							$("#enter_password #password").val("");
+							password_enter_window.show();
+						}
+					});
+					new_item.append(joinButton);
 
 					browse_list.append(new_item);
 				}
@@ -369,22 +538,22 @@
 
 			}
 
-			$("#refresh").click(function () {
-				show_browse();
-				show_joined();
-			});
+			$("#refresh").click(refresh);
 
-			$("#game_create #create").onclick = function () {
-				$.post("create_game.php", $("#create_form").serialize(), function(data) {
-					alert("WORKED");
-					show_browse();
-					show_joined();
+			$("#game_create #create").click(function () {
+				var formData = $("#create_form").serialize() + "&id=" + user_id;
+				$("#game_create #username").val("");
+				$.post("create_game.php", formData, function(data) {
+					refresh();
 					game_create_window.hide();
 				});
-			}
+			});
 
-			show_browse();
-			show_joined();
+			$("#enter_password #join").click(joinSelected);
+
+			refresh();
+
+			setInterval(refresh, 10000);
 
 		</script>
 
