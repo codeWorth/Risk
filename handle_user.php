@@ -255,9 +255,8 @@
 
 					<h4>Maximum Players</h4>
 					<input type="number" id="players" name="players" min="3" max="8" value="5">
-
-					<button id="create">Create</button>
 				</form>
+				<button id="create">Create</button>
 				<button id="cancel" onclick="game_create_window.hide()">Cancel</button>
 			</div>
 		</div>
