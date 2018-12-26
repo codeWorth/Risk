@@ -482,7 +482,7 @@
 				for (var i = 0; i < items; i++) {
 					var new_item = $("<div class='list_item'></div>");
 					new_item.append("<h2>"+ browse_names[i] + "</h2>");
-					if (browse_pass[i].length > 0) {
+					if (browse_pass[i]) {
 						new_item.append("<p>Requires Password: Yes</p>");
 					} else {
 						new_item.append("<p>Requires Password: No</p>");
@@ -493,7 +493,7 @@
 					joinButton.val(i.toString());
 					joinButton.click(function (e) {
 						selectBrowse = parseInt(e.target.value);
-						if (browse_pass[selectBrowse].length === 0) {
+						if (!browse_pass[selectBrowse]) {
 							joinSelected();
 						} else {
 							$("#enter_password #password").val("");
