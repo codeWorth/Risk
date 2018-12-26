@@ -373,7 +373,8 @@
 			if (data == "invalid") {
 				window.location.replace("index.html");
 			} else if (data == "-1") {
-				document.write("Unknown username and password combination.");
+				alert("Unknown username and password combination.");
+				window.location.replace("index.html");
 			} else {
 				var parts = data.split(",");
 				var user_id = data[0];
