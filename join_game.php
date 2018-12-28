@@ -1,15 +1,12 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 $db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
 
 $name = $_POST["name"];
 $pass = $_POST["pass"];
 $uid = $_POST["uid"];
 
-$stmt = $db->prepare("SELECT `player_ids`,`wanted_players`,`game_id` FROM games WHERE `game_name`=? AND `game_password`=?;");
+$stmt = $db->prepare("SELECT `player_ids`,`wanted_players`,`game_id`,`game_ready` FROM games WHERE `game_name`=? AND `game_password`=?;");
 $stmt->bind_param('ss', $name, $pass);
 $stmt->execute();
 $out = $stmt->get_result();
@@ -23,7 +20,9 @@ if (mysqli_num_rows($out) == 0) {
 	$players = $result[0];
 	$player_a = explode(",", $players);
 
-	if (in_array($uid, $player_a)) {
+	if ($result[3] == "1") {
+		echo "notexist";
+	} else if (in_array($uid, $player_a)) {
 		echo "already";
 	} else {
 

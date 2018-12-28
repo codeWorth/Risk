@@ -103,18 +103,22 @@
 				right: 5px;
 			}
 
-			#create_img {
+			.list_button {
+				width: 74px;
+				height: 74px;
+				text-align: center;
 				margin: 5px auto;
 				display: block;
 				border-radius: 37px;
 				background-color: rgba(65, 65, 65, 0.1);
+				font-size: 50pt;
 			}
 
-			#create_img:hover {
+			.list_button:hover {
 				background-color: rgba(65, 65, 65, 0.2);
 			}
 
-			#create_img:active {
+			.list_button:active {
 				box-shadow: 0 0 5px -1px rgba(0,0,0,0.6);
 			}
 
@@ -194,7 +198,7 @@
 				margin: auto;
 				margin-top: 50px;
 				width: 300px;
-				height: 200px;
+				height: 280px;
 				border: 1px solid black;
 				background-color: white;
 				position: relative;
@@ -227,7 +231,7 @@
 				width: 100%;
 				text-align: center;
 				left: 0px;
-				top: 100px;
+				top: 175px;
 				font-size: 10pt;
 				color: red;
 			}
@@ -262,7 +266,18 @@
 			$user_id = $_POST['enc_pass'];
 
 			if (isset($user_id)) {
-				echo $user_id;
+
+				$stmt = $db->prepare("SELECT `user_name` FROM players WHERE `user_id`= ? AND `user_password`=?;");
+				$stmt->bind_param('ss', $user_id, $password);
+				$stmt->execute();
+				$me = $stmt->get_result();
+
+				if (mysqli_num_rows($me) != 0) {
+					echo $user_id;
+				} else {
+					echo "-1";
+				}
+
 			} else {
 				if ($username != "" and $password != "") {
 					if (isset($_POST['new'])) {
@@ -337,10 +352,12 @@
 
 		<div id="enter_password">
 			<div id="center">
-				<h2>Join [Game Name]</h2>
-				<h4>Enter Password</h4>
+				<h2>Join Lobby</h2>
+				<h4>Lobby Name</h4>
+				<input id="name" type="text" placeholder="Enter Lobby Name" class="input_box"> <br/>
+				<h4>Password</h4>
 				<input id="password" type="password" placeholder="Enter Password" class="input_box"> <br/>
-				<p id="incorrect">Incorrect Password</p>
+				<p id="incorrect">Incorrect Name/Password</p>
 				<button id="join">Join</button>
 				<button id="cancel" onclick="password_enter_window.hide(); incorrect_text.hide();">Cancel</button>
 			</div>
@@ -368,6 +385,26 @@
 
 		<script>
 
+			function post(path, params) {
+				var form = document.createElement("form");
+				form.setAttribute("method", "post");
+				form.setAttribute("action", path);
+
+				for(var key in params) {
+					if( params.hasOwnProperty(key) ) {
+						var hiddenField = document.createElement("input");
+						hiddenField.setAttribute("type", "hidden");
+						hiddenField.setAttribute("name", key);
+						hiddenField.setAttribute("value", params[key]);
+
+						form.appendChild(hiddenField);
+					}
+				}
+
+				document.body.appendChild(form);
+				form.submit();
+			}
+
 			var data = document.getElementById("info").textContent;
 
 			if (data == "invalid") {
@@ -377,8 +414,8 @@
 				window.location.replace("index.html");
 			} else {
 				var parts = data.split(",");
-				var user_id = data[0];
-				var enc_pass = data[1];
+				var user_id = parts[0];
+				var enc_pass = parts[1];
 			}
 
 			var game_create_window = $("#game_create");
@@ -403,9 +440,10 @@
 			var joined_players = [];
 			var joined_wanted_players = [];
 			var joined_started = [];
+			var joined_id = [];
 
 			function joinSelected() {
-				var data = {name:browse_names[selectBrowse], pass:$("#enter_password #password").val(), uid:user_id};
+				var data = {name:$("#enter_password #name").val(), pass:$("#enter_password #password").val(), uid:user_id};
 				$.post("join_game.php", data, function(data) {
 					if (data === "filled") {
 						alert("Game lobby already filled.");
@@ -452,6 +490,7 @@
 						ids.splice(ids.length-1, 1);
 
 						if (ids.includes(user_id)) {
+							joined_id.push(id);
 							joined_names.push(name);
 							joined_host.push(ids[0] === user_id);
 							joined_players.push(ids.length);
@@ -475,10 +514,19 @@
 				game_create_window.show();
 			}
 
+			function show_join() {
+				$("#enter_password #password").val("");
+				$("#enter_password #name").val("");
+				$("#enter_password #incorrect").hide();
+				password_enter_window.show();
+			}
+
 			function show_browse() {
 				var items = browse_names.length;
 
 				browse_list.empty();
+
+				browse_list.append("<div class='list_item'><div class='list_button' onclick='show_join()'><b>?</b></div></div>");
 
 				for (var i = 0; i < items; i++) {
 					var new_item = $("<div class='list_item'></div>");
@@ -498,6 +546,7 @@
 							joinSelected();
 						} else {
 							$("#enter_password #password").val("");
+							$("#enter_password #name").val(browse_names[selectBrowse]);
 							password_enter_window.show();
 						}
 					});
@@ -513,6 +562,8 @@
 
 				joined_list.empty();
 
+				joined_list.append("<div class='list_item'><div class='list_button' onclick='show_create()' style='line-height: 51pt;'><b>+</b></div></div>");
+
 				for (var i = 0; i < items; i++) {
 					var new_item = $("<div class='list_item'></div>");
 					new_item.append("<h2>"+ joined_names[i] + "</h2>");
@@ -523,19 +574,33 @@
 					}
 					new_item.append("<p>Players: " + joined_players[i].toString() + " / " + joined_wanted_players[i].toString() + " </p>");
 					if (joined_host[i]) {
-						new_item.append("<button class='mainbutton'>Start</button>");
+						if (!joined_started[i]) {
+							var startButton = $("<button class='mainbutton'>Start</button>");
+							startButton.val(i.toString());
+							startButton.click(function (e) { 
+								var index = parseInt(e.target.value);
+								$.post("start_game.php", "gid="+joined_id[index].toString(), refresh); 
+							});
+							new_item.append(startButton);
+						}
+
 						new_item.append("<button class='secondbutton'>Disband</button>");
 					} else {
 						new_item.append("<button class='mainbutton'>Leave</button>");
 					}
 					if (joined_started[i]) {
-						new_item.append("<button class='playbutton'>Play</button>");
+						var playButton = $("<button class='playbutton'>Play</button>");
+						playButton.val(i.toString());
+						playButton.click(function (e) {
+							var index = parseInt(e.target.value);
+							post("game.php", {gid:joined_id[index], uid:user_id, pass:enc_pass});
+						})
+
+						new_item.append(playButton);
 					}
 
 					joined_list.append(new_item);
 				}
-
-				joined_list.append("<div class='list_item'><img id='create_img' onclick='show_create()' src='http://pngimg.com/uploads/plus/plus_PNG22.png' width='74' height='74'></img></div>");
 
 			}
 
@@ -554,7 +619,11 @@
 
 			refresh();
 
-			setInterval(refresh, 10000);
+			setInterval(function () {
+				if ($("#enter_password").css('display') == "none" && $("game_create").css('display') == "none") {
+					refresh();
+				}
+			}, 10000);
 
 		</script>
 

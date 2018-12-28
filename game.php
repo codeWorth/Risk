@@ -171,6 +171,39 @@
 		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 	</head>
 	<body>
+
+		<div id="info" style="display: none;"><?php
+
+			$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+
+			$gid = $_POST['gid'];
+			$uid = $_POST['uid'];
+			$password = $_POST['pass']; 
+
+			$stmt = $db->prepare("SELECT `user_games` FROM players WHERE `user_id`=? AND `user_password`=?;");
+			$stmt->bind_param('ss', $uid, $password);
+			$stmt->execute();
+			$user = $stmt->get_result();
+
+			if (mysqli_num_rows($user) == 0) {
+				header("Location: index.html");
+				exit();
+			}
+
+			$games = explode(",", mysqli_fetch_row($user)[0]);
+			if (!in_array($gid, $games)) {
+				header("Location: index.html");
+				exit();
+			}
+
+			$stmt = $db->prepare("SELECT * FROM games WHERE `game_id`=?;");
+			$stmt->bind_param('s', $gid);
+			$stmt->execute();
+			echo $uid . "||";
+			echo implode("||", mysqli_fetch_row($stmt->get_result()));
+
+		?></div>
+
 		<canvas id="game_back" width="2800" height="1400"></canvas>
 		<canvas id="game" width="2800" height="1400"></canvas>
 		<div id="troop_count">5</div>
@@ -179,6 +212,9 @@
 		<div id="finish_action">Finish Attacks</div>
 
 		<script>
+
+			var data = document.getElementById("info").textContent;
+
 			var win = $(window);
 			var back_canvas = document.getElementById("game_back");
 			var canvas = document.getElementById("game");
@@ -192,7 +228,6 @@
 
 			var scale_factor = 8400 / canvas.width;
 
-			var numPlayers = 4;
 			var playerColors = ["rgba(80, 230, 80, 0.5)", "rgba(0, 0, 255, 0.5)", "rgba(130, 130, 130, 0.5)", "rgba(200, 0, 200, 0.5)"];
 
 			var prefix = "http://52.53.247.208/";
@@ -304,26 +339,51 @@
 
 			var ownerIndex = [];
 			var troopsOn = [];
-			var myIndex = 0;
+			var userID = 0;
+			var playerOrder = [];
+			var currentIndex = 0;
+			var gameName = "";
+			var startingPhase = false;
 
 			var shiftDown = false;
-			var spareTroops = 5;
+			var spareTroops = 0;
 
-			// ------START TEMPORARY CODE------
-			var terrsPerPlayer = Math.floor(img_names.length / numPlayers);
+			var gameID = -1;
 
-			for (var i = 0; i < numPlayers; i++) {
-				for (var j = 0; j < terrsPerPlayer; j++) {
-					ownerIndex.push(i);
-					troopsOn.push(1);
-				}
+			function decode(data) {
+				var parts = data.split("||");
+				userID = parseInt(parts[0]);
+
+				gameID = parts[1];
+
+				gameName = parts[2];
+
+				currentIndex = parseInt(parts[7]);
+
+				var indecies = parts[8].split(",");
+				playerOrder = indecies.map(n => parseInt(n));
+
+				var ownerStrings = parts[9].split(",");
+				var troopsStrings = parts[10].split(",");
+				ownerIndex = ownerStrings.map(n => parseInt(n));
+				troopsOn = troopsStrings.map(n => parseInt(n));
+
+				startingPhase = ownerIndex.includes(-1);
 			}
 
-			for (var i = 0; i < img_names.length - terrsPerPlayer; i++) {
-				ownerIndex.push(0);
-				troopsOn.push(1);
+			function encode() {
+				var str = currentIndex.toString() + "||";
+				str += playerOrder.toString() + "||";
+				str += ownerIndex.toString() + "||";
+				str += troopsOn.toString();
+
+				return str;
 			}
-			// ------END TEMPORARY CODE------
+
+			var ready = false;
+			decode(data);
+			setInterval(refresh, 7500);
+			refresh();
 
 			for (var i = 0; i < cropped_names.length; i++) {
 				var outlineImage = new Image;
@@ -362,7 +422,7 @@
 				}
 				for (var i = 0; i < adjacent_indecies[source].length; i++) {
 					var ind = adjacent_indecies[source][i];
-					if (ownerIndex[ind] == myIndex) {
+					if (ownerIndex[ind] == userID) {
 						options.push(ind);
 					}
 				}
@@ -380,7 +440,7 @@
 					var found = false;
 					for (var i = 0; i < adjacent_indecies[last].length; i++) {
 						var ind = adjacent_indecies[last][i];
-						if (visited[ind] == 0 && ownerIndex[ind] == myIndex) {
+						if (visited[ind] == 0 && ownerIndex[ind] == userID) {
 							options.push(ind);
 							found = true;
 							break;
@@ -451,7 +511,12 @@
 				}
 
 				for (var i = 0; i < troopsOn.length; i++) {
-					ctx.fillStyle = playerColors[ownerIndex[i]];
+					if (ownerIndex[i] === -1) {
+						continue;
+					}
+
+					var colorIndex = playerOrder.indexOf(ownerIndex[i]);
+					ctx.fillStyle = playerColors[colorIndex];
 
 					var x = xs[i] / scale_factor;
 					var y = ys[i] / scale_factor;
@@ -474,13 +539,19 @@
 			}
 
 			function draw_ui() {
-				troop_count.style.backgroundColor  = playerColors[myIndex];
+				troop_count.style.backgroundColor  = playerColors[playerOrder.indexOf(userID)];
 				troop_count.innerText = spareTroops;
 
-				if (shouldDeploy) {
+				if (shouldDeploy && myTurn) {
 					troop_count.style.visibility = "visible";
 				} else {
 					troop_count.style.visibility = "hidden";
+				}
+
+				if (!myTurn) {
+					confirm_button.style.visibility = "hidden";
+					cancel_button.style.visibility = "hidden";
+					finish_button.style.visibility = "hidden";
 				}
 			}
 
@@ -490,11 +561,29 @@
 				
 				var index = 255 - maskCtx.getImageData(x*scale_factor, y*scale_factor, 1, 1).data[0];
 
-				if (!myTurn || index == 255 || highlightedCountry == -1) {
+				if (!myTurn || index == 255 || highlightedCountry == -1 || !ready || highlightedCountry != index) {
 					return;
 				}
 
-				if (shouldLocations) {
+				if (startingPhase) {
+					if (targetCountry == -1) {
+						spareTroops--;
+						targetCountry = index;
+						ownerIndex[index] = userID;
+						troopsOn[index] = 1;
+					} else if (targetCountry == index) {
+						ownerIndex[targetCountry] = -1;
+						troopsOn[targetCountry] = 0;
+						targetCountry = -1;
+						spareTroops++;
+					} else {
+						ownerIndex[targetCountry] = -1;
+						troopsOn[targetCountry] = 0;
+						targetCountry = index;
+						ownerIndex[index] = userID;
+						troopsOn[targetCountry] = 1;
+					}
+				} else if (shouldLocations) {
 					if (shiftDown) {
 						if (sourceCountry == -1 || adjacent(sourceCountry, index)) {
 							targetCountry = index;
@@ -536,12 +625,18 @@
 					highlightedCountry = -1;
 				} else if (!myTurn) {
 					highlightedCountry = index;
+				} else if (startingPhase) {
+					if (ownerIndex[index] == -1) {
+						highlightedCountry = index;
+					} else {
+						highlightedCountry = -1;
+					}
 				} else {   
 					if (shouldLocations) {
 						if (shiftDown) {
-							if (targetFriendly && ownerIndex[index] != myIndex) {
+							if (targetFriendly && ownerIndex[index] != userID) {
 								highlightedCountry = -1;
-							} else if (!targetFriendly && ownerIndex[index] == myIndex) {
+							} else if (!targetFriendly && ownerIndex[index] == userID) {
 								highlightedCountry = -1;
 							} else if (sourceCountry != -1 && !adjacent(sourceCountry, index)) {
 								highlightedCountry = -1;
@@ -549,14 +644,14 @@
 								highlightedCountry = index;
 							}
 						} else {
-							if (ownerIndex[index] != myIndex || troopsOn[index] <= 1) {
+							if (ownerIndex[index] != userID || troopsOn[index] <= 1) {
 								highlightedCountry = -1;
 							} else {
 								highlightedCountry = index;
 							}
 						}
 					} else if (shouldDeploy) {
-						if (ownerIndex[index] == myIndex) {
+						if (ownerIndex[index] == userID) {
 							highlightedCountry = index;
 						} else {
 							highlightedCountry = -1;
@@ -609,6 +704,10 @@
 			var targetFriendly = false;
 
 			function troopsPerTurn() {
+				if (startingPhase) {
+					return 1;
+				}
+
 				var terrs = 0;
 				var conts = [];
 				for (var i = 0; i < cont_terrs.length; i++) {
@@ -616,7 +715,7 @@
 				}
 
 				for (var i = 0; i < ownerIndex.length; i++) {
-					if (ownerIndex[i] == myIndex) {
+					if (ownerIndex[i] == userID) {
 						terrs++;
 						conts[country_cont[i]]++;
 					}
@@ -702,6 +801,18 @@
 				}
 			}
 
+			function endTurn() {
+				myTurn = false;
+				deployPhase = false;
+				attackPhase = false;
+				reinforcePhase = false;
+				shouldLocations = false;
+				shouldDeploy = false;
+				shouldTransfer = false;
+				sourceCountry = -1;
+				targetCountry = -1;
+			}
+
 			function playTurn() {
 				myTurn = true;
 				deployPhase = true;
@@ -717,7 +828,20 @@
 				confirm_button.innerText = "Deploy";
 				confirm_button.onclick = function () {
 					if (spareTroops == 0) {
-						playAttack();
+						if (startingPhase) {
+							currentIndex++;
+							if (currentIndex >= playerOrder.length) {
+								currentIndex = 0;
+							}
+
+							var newData = encode();
+							var form = {gid: gameID, data:newData};
+							$.post("send_game_data.php", form);
+
+							endTurn();
+						} else {
+							playAttack();
+						}
 					}
 				}
 			}
@@ -744,7 +868,7 @@
 						performAttack(sourceCountry, targetCountry);
 
 						if (troopsOn[targetCountry] == 0) {
-							ownerIndex[targetCountry] = myIndex;
+							ownerIndex[targetCountry] = userID;
 							troopsOn[targetCountry] = 1;
 							troopsOn[sourceCountry]--;
 							draw();
@@ -811,18 +935,41 @@
 						targetCountry = -1;
 						draw();
 					} else {
-						myTurn = false;
-						shouldLocations = false;
-						shouldDeploy = false;
-						shouldTransfer = false;
-						confirm_button.style.visibility = "hidden";
-						finish_button.style.visibility = "hidden";
-						cancel_button.style.visibility = "hidden";
+						currentIndex++;
+						if (currentIndex >= playerOrder.length) {
+							currentIndex = 0;
+						}
+
+						var newData = encode();
+						var form = {gid: gameID, data:newData};
+						$.post("send_game_data.php", form);
+
+						endTurn();
 					}
 				}
 			}
 
-			playTurn();
+			function refresh() {
+				if (playerOrder[currentIndex] == userID && ready) {
+					return;
+				}
+
+				var data = {gid:gameID, uid:userID};
+				$.post("get_game_data.php", data, function(data) {
+					if (data === "-1") {
+						window.location.replace("index.html");
+					} else {
+						ready = true;
+						decode(data);
+
+						if (playerOrder[currentIndex] == userID) {
+							playTurn();
+						} else {
+							endTurn();
+						}
+					}
+				});
+			}
 
 		</script>
 	</body>
