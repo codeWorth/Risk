@@ -1,10 +1,19 @@
 <?php
 
+if (!isset($_COOKIE['name']) || !isset($_COOKIE['pass']) || $_COOKIE['name'] == "" || $_COOKIE['pass'] == "") {
+	echo "notexist";
+	exit();
+}
+
 $db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
 
 $name = $_POST["name"];
 $pass = $_POST["pass"];
-$uid = $_POST["uid"];
+
+$stmt = $db->prepare("SELECT `user_id` FROM players WHERE `user_name`=? AND `user_password`=?;");
+$stmt->bind_param('ss', $_COOKIE['name'], $_COOKIE['pass']);
+$stmt->execute();
+$uid = mysqli_fetch_row($stmt->get_result())[0];
 
 $stmt = $db->prepare("SELECT `player_ids`,`wanted_players`,`game_id`,`game_ready` FROM games WHERE `game_name`=? AND `game_password`=?;");
 $stmt->bind_param('ss', $name, $pass);
