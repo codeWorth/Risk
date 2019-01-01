@@ -1,7 +1,6 @@
 <?php
 
 if (!isset($_COOKIE['name']) || !isset($_COOKIE['pass']) || $_COOKIE['name'] == "" || $_COOKIE['pass'] == "") {
-	echo "zoop";
 	exit();
 }
 
