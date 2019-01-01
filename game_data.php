@@ -1,15 +1,11 @@
 <?php
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 if (!isset($_COOKIE['name']) || !isset($_COOKIE['pass']) || $_COOKIE['name'] == "" || $_COOKIE['pass'] == "") {
 	echo "zoop";
 	exit();
 }
 
-$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+$db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $stmt = $db->prepare("SELECT `user_id`,`user_games` FROM players WHERE `user_name`=? AND `user_password`=?;");
 $stmt->bind_param('ss', $_COOKIE['name'], $_COOKIE['pass']);

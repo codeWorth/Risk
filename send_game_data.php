@@ -1,6 +1,6 @@
 <?php
 
-$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+$db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $gid = $_POST['gid'];
 $data = $_POST['data'];

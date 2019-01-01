@@ -1,6 +1,6 @@
 <?php
 
-$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+$db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $gid = $_POST["gid"];
 
@@ -32,7 +32,7 @@ $game_data .= "-1||";
 for ($i = 0; $i < 41; $i++) {
 	$game_data .= "0,";
 }
-$game_data .= "0";
+$game_data .= "0||0";
 
 $stmt = $db->prepare("UPDATE games SET `game_data`=? WHERE `game_id`=?;");
 $stmt->bind_param('ss', $game_data, $gid);

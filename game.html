@@ -181,10 +181,56 @@
 
 		<script>
 
-			var ws = new WebSocket("ws://54.193.93.44:3000");
+			var webS = new WebSocket("ws://54.193.93.44:3000");
 
-			ws.onopen = function (e) {
-				ws.send("FAT");
+			webS.onopen = function (event) {
+				_ws = event.target;
+				webS = _ws;
+
+				_ws.onmessage = function (event) {
+					msg = event.data;
+
+					var parts = msg.split("||");
+					var k = parts[0];	
+					var v = parts[1];
+
+					if (k === "data") {
+						var g = JSON.parse(v);
+
+						highlightedCountry = g.highlightedCountry;
+						sourceCountry = g.sourceCountry;
+						targetCountry = g.targetCountry;
+
+						ownerIndex = g.ownerIndex;
+						troopsOn = g.troopsOn;
+						playerOrder = g.playerOrder;
+						gameName = g.gameName;
+						startingPhase = g.startingPhase;
+						spareTroops = g.spareTroops;
+
+						shouldLocations = g.shouldLocations;
+						shouldDeploy = g.shouldDeploy;
+						targetFriendly = g.targetFriendly;
+
+						draw();
+					} else if (k === "id") {
+						userID = parseInt(v);
+					} else if (k === "playTurn") {
+						playTurn();
+					} else if (k === "end") {
+						myTurn = false;
+					} else if (k === "playAttack") {
+						playAttack();
+					} else if (k === "transfer") {
+						transfer();
+					} else if (k === "playReinforce") {
+						playReinforce();
+					} else {
+						console.log("UNHANDELED: " + k);
+					}
+				}
+
+				_ws.send("begin||" + document.cookie);
 			};
 
 			var win = $(window);
@@ -202,11 +248,7 @@
 
 			var playerColors = ["rgba(80, 230, 80, 0.5)", "rgba(0, 0, 255, 0.5)", "rgba(130, 130, 130, 0.5)", "rgba(200, 0, 200, 0.5)"];
 
-			var prefix = "http://52.53.247.208/";
-
-			var deployPhase = false;
-			var attackPhase = false;
-			var reinforcePhase = false;
+			var prefix = "http://54.193.93.44/";
 
 			var backImg = new Image;
 			backImg.onload = function () {
@@ -317,45 +359,15 @@
 			var gameName = "";
 			var startingPhase = false;
 
+			var shouldLocations = false;
+			var shouldDeploy = false;
+			var targetFriendly = false;
+
 			var shiftDown = false;
 			var spareTroops = 0;
 
-			var gameID = -1;
-
-			function decode(data) {
-				var parts = data.split("||");
-				userID = parseInt(parts[0]);
-
-				gameID = parts[1];
-
-				gameName = parts[2];
-
-				currentIndex = parseInt(parts[7]);
-
-				var indecies = parts[8].split(",");
-				playerOrder = indecies.map(n => parseInt(n));
-
-				var ownerStrings = parts[9].split(",");
-				var troopsStrings = parts[10].split(",");
-				ownerIndex = ownerStrings.map(n => parseInt(n));
-				troopsOn = troopsStrings.map(n => parseInt(n));
-
-				startingPhase = ownerIndex.includes(-1);
-			}
-
-			function encode() {
-				var str = currentIndex.toString() + "||";
-				str += playerOrder.toString() + "||";
-				str += ownerIndex.toString() + "||";
-				str += troopsOn.toString();
-
-				return str;
-			}
-
-			var ready = false;
-			decode(data);
-			setInterval(refresh, 7500);
-			refresh();
+			var myTurn = false;
+			var transferMode = false;
 
 			for (var i = 0; i < cropped_names.length; i++) {
 				var outlineImage = new Image;
@@ -395,16 +407,16 @@
 					highW = ws[highlightedCountry] / scale_factor;
 					highH = hs[highlightedCountry] / scale_factor;
 
-					if (shiftDown && shouldLocations) {
+					if (shiftDown && shouldLocations && myTurn) {
 						ctx.drawImage(target_outlines[highlightedCountry], highX, highY, highW, highH);
-					} else if (shouldLocations) {
+					} else if (shouldLocations && myTurn) {
 						ctx.drawImage(source_outlines[highlightedCountry], highX, highY, highW, highH);
 					} else {
 						ctx.drawImage(highlight_outlines[highlightedCountry], highX, highY, highW, highH);
 					}
 				}
 
-				if (sourceCountry != -1) {
+				if (sourceCountry != -1 && myTurn) {
 					sourceX = xs[sourceCountry] / scale_factor;
 					sourceY = ys[sourceCountry] / scale_factor;
 					sourceW = ws[sourceCountry] / scale_factor;
@@ -412,7 +424,7 @@
 					ctx.drawImage(source_outlines[sourceCountry], sourceX, sourceY, sourceW, sourceH);
 				}
 
-				if (targetCountry != -1) {
+				if (targetCountry != -1 && myTurn) {
 					targetX = xs[targetCountry] / scale_factor;
 					targetY = ys[targetCountry] / scale_factor;
 					targetW = ws[targetCountry] / scale_factor;
@@ -420,7 +432,7 @@
 					ctx.drawImage(target_outlines[targetCountry], targetX, targetY, targetW, targetH);
 				}
 
-				if (sourceCountry != -1 && targetCountry != -1 && sourceCountry != targetCountry) {
+				if (sourceCountry != -1 && targetCountry != -1 && sourceCountry != targetCountry && myTurn) {
 					ctx.fillStyle = "red";
 					ctx.strokeStyle = 'red';
 					ctx.lineJoin = 'butt';
@@ -477,12 +489,22 @@
 			document.body.onmousedown = function (e) {
 				var x = e.pageX;
 				var y = e.pageY;
+
+				if ($("#confirm_action").css("background-color") === "rgba(65, 65, 65, 0.5)") {
+					return;
+				}
+				if ($("#finish_action").css("background-color") === "rgba(65, 65, 65, 0.5)") {
+					return;
+				}
+				if ($("#cancel_attack").css("background-color") === "rgba(65, 65, 65, 0.5)") {
+					return;
+				}
 				
 				var index = 255 - maskCtx.getImageData(x*scale_factor, y*scale_factor, 1, 1).data[0];
 
-				
-
-				draw();
+				if (myTurn) {
+					webS.send("down||" + index.toString());
+				}
 			}
 
 			var lastHovered = 255;
@@ -491,90 +513,68 @@
 				var x = e.pageX;
 				var y = e.pageY;
 				
-				lastHovered = 255 - maskCtx.getImageData(x*scale_factor, y*scale_factor, 1, 1).data[0];
-				checkHighlightable();
-
-				draw();
+				var index = 255 - maskCtx.getImageData(x*scale_factor, y*scale_factor, 1, 1).data[0];
+				var changed = (index != lastHovered);
+				lastHovered = index;
+				if (myTurn) {
+					if (changed) {
+						webS.send("move||" + lastHovered.toString());
+					}
+				} else {
+					if (lastHovered == 255) {
+						highlightedCountry = -1;
+					} else {
+						highlightedCountry = lastHovered;
+					}
+					draw();
+				}
 			}
 
 			document.body.onkeydown = function (e) {
 				if (e.keyCode == 16) {
 					shiftDown = true;
-					checkHighlightable();
-					draw();
+					webS.send("shift||true~~move||" + lastHovered.toString());
 				}
 			}
 			document.body.onkeyup = function (e) {
 				if (e.keyCode == 16) {
 					shiftDown = false;
-					checkHighlightable();
-					draw();
+					webS.send("shift||false~~move||" + lastHovered.toString());
 				}
 			}
 
-			var myTurn = true;
-			var shouldLocations = false;
-			var shouldDeploy = true;
+			function transfer() {
+				transferMode = true;
+				confirm_button.style.visibility = "visible";
+				confirm_button.innerText = "Transfer";
+				cancel_button.style.visibility = "visible";
+				cancel_button.innerText = "Cancel";
+				finish_button.style.visibility = "hidden";
 
-			var shouldTransfer = false;
-			var sourceSavedTroops = 0;
-			var targetSavedTroops = 0;
+				confirm_button.onclick = function () {
+					transferMode = false;
+					webS.send("callback||");
+				}
 
-			var targetFriendly = false;
-
-			function endTurn() {
-				myTurn = false;
-				deployPhase = false;
-				attackPhase = false;
-				reinforcePhase = false;
-				shouldLocations = false;
-				shouldDeploy = false;
-				shouldTransfer = false;
-				sourceCountry = -1;
-				targetCountry = -1;
+				cancel_button.onclick = function () {
+					transferMode = false;
+					webS.send("cancelTransfer||");
+				}
 			}
 
 			function playTurn() {
 				myTurn = true;
-				deployPhase = true;
-				attackPhase = false;
-				reinforcePhase = false;
-
-				shouldLocations = false;
-				shouldDeploy = true;
-				spareTroops = troopsPerTurn();
 				draw();
 
 				confirm_button.style.visibility = "visible";
 				confirm_button.innerText = "Deploy";
 				confirm_button.onclick = function () {
-					if (spareTroops == 0) {
-						if (startingPhase) {
-							currentIndex++;
-							if (currentIndex >= playerOrder.length) {
-								currentIndex = 0;
-							}
-
-							var newData = encode();
-							var form = {gid: gameID, data:newData};
-							$.post("send_game_data.php", form);
-
-							endTurn();
-						} else {
-							playAttack();
-						}
-					}
+					webS.send("confirmDeploy||");
 				}
 			}
 
 			function playAttack() {
-				deployPhase = false;
-				attackPhase = true;
-				reinforcePhase = false;
-
-				shouldLocations = true;
-				shouldDeploy = false;
-				targetFriendly = false;
+				myTurn = true;
 				draw();
 
 				confirm_button.style.visibility = "visible";
@@ -585,57 +585,20 @@
 				finish_button.innerText = "Finish Attacks";
 
 				confirm_button.onclick = function () {
-					if (sourceCountry != -1 && targetCountry != -1) {
-						performAttack(sourceCountry, targetCountry);
-
-						if (troopsOn[targetCountry] == 0) {
-							ownerIndex[targetCountry] = userID;
-							troopsOn[targetCountry] = 1;
-							troopsOn[sourceCountry]--;
-							draw();
-							transfer(function () {
-								sourceCountry = -1;
-								targetCountry = -1;
-								playAttack();
-							});
-						} else {
-							if (troopsOn[sourceCountry] == 1) {
-								sourceCountry = -1;
-								targetCountry = -1;
-							}
-							draw();
-						}
-					}
+					webS.send("confirmAttack||");
 				}
 
 				cancel_button.onclick = function () {
-					sourceCountry = -1;
-					targetCountry = -1;
-					draw();
+					webS.send("cancelAttack||");
 				}
 
 				finish_button.onclick = function () {
-					if (sourceCountry != -1 || targetCountry != -1) {
-						sourceCountry = -1;
-						targetCountry = -1;
-						draw();
-					} else {
-						playReinforce();
-					}
+					webS.send("finishAttack||");
 				}
 			}
 
 			function playReinforce() {
-				sourceCountry = -1;
-				targetCountry = -1;
-
-				deployPhase = false;
-				attackPhase = false;
-				reinforcePhase = true;
-
-				shouldLocations = true;
-				shouldDeploy = false;
-				targetFriendly = true;
+				myTurn = true;
 				draw();
 
 				confirm_button.innerText = "Move";
@@ -645,28 +608,11 @@
 				cancel_button.style.visibility = "hidden";
 
 				confirm_button.onclick = function () {
-					if (sourceCountry != -1 && targetCountry != -1) {
-						transfer(playReinforce);
-					}
+					webS.send("confirmReinforce||");
 				}
 
 				finish_button.onclick = function () {
-					if (sourceCountry != -1 || targetCountry != -1) {
-						sourceCountry = -1;
-						targetCountry = -1;
-						draw();
-					} else {
-						currentIndex++;
-						if (currentIndex >= playerOrder.length) {
-							currentIndex = 0;
-						}
-
-						var newData = encode();
-						var form = {gid: gameID, data:newData};
-						$.post("send_game_data.php", form);
-
-						endTurn();
-					}
+					webS.send("finishReinforce||");
 				}
 			}
 

@@ -4,7 +4,7 @@ if (!isset($_COOKIE['name']) || !isset($_COOKIE['pass']) || $_COOKIE['name'] == 
 	exit();
 }
 
-$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+$db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $game_name = $_POST['name'];
 $game_pass = $_POST['pass'];

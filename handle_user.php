@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-$db = mysqli_connect("localhost", "risk_game", getenv("MYSQL_PASS"), "riskdb");
+$db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $username = $_POST['name'];
 $password = $_POST['pass']; 
@@ -32,6 +32,7 @@ if (isset($_POST['new'])) {
 		setcookie('pass', hash('sha256', $password), false, "/");
 
 		header('Location: lobby.html');
+		exit();
 
 	}
 
@@ -50,6 +51,7 @@ if (isset($_POST['new'])) {
 		setcookie('pass', $row[0], false, "/");
 
 		header('Location: lobby.html');
+		exit();
 	}
 
 } else {

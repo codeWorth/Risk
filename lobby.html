@@ -455,11 +455,11 @@
 					joinButton.val(i.toString());
 					joinButton.click(function (e) {
 						selectBrowse = parseInt(e.target.value);
+						$("#enter_password #password").val("");
+						$("#enter_password #name").val(browse_names[selectBrowse]);
 						if (!browse_pass[selectBrowse]) {
 							joinSelected();
 						} else {
-							$("#enter_password #password").val("");
-							$("#enter_password #name").val(browse_names[selectBrowse]);
 							password_enter_window.show();
 						}
 					});
@@ -506,7 +506,9 @@
 						playButton.val(i.toString());
 						playButton.click(function (e) {
 							var index = parseInt(e.target.value);
-							post("play_game.php", {gid:joined_id[index]});
+							$.post("play_game.php", {gid:joined_id[index]}, function () {
+								window.location.href = "game.html";
+							});
 						})
 
 						new_item.append(playButton);
