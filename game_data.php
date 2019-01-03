@@ -14,7 +14,7 @@ $result = mysqli_fetch_row($stmt->get_result());
 $uid = $result[0];
 $game_ids = explode(",", $result[1]);
 
-$stmt = $db->prepare("SELECT `game_id`,`game_name`,`game_password`,`game_ready`,`wanted_players`,`player_ids` FROM games;");
+$stmt = $db->prepare("SELECT `game_id`,`game_name`,`game_password`,`game_ready`,`wanted_players`,`player_ids`,`auto_start` FROM games;");
 $stmt->execute();
 $result = $stmt->get_result();
 

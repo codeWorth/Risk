@@ -15,7 +15,7 @@ $stmt->bind_param('ss', $_COOKIE['name'], $_COOKIE['pass']);
 $stmt->execute();
 $uid = mysqli_fetch_row($stmt->get_result())[0];
 
-$stmt = $db->prepare("SELECT `player_ids`,`wanted_players`,`game_id`,`game_ready` FROM games WHERE `game_name`=? AND `game_password`=?;");
+$stmt = $db->prepare("SELECT `player_ids`,`wanted_players`,`game_id`,`game_ready`,`auto_start` FROM games WHERE `game_name`=? AND `game_password`=?;");
 $stmt->bind_param('ss', $name, $pass);
 $stmt->execute();
 $out = $stmt->get_result();
@@ -38,6 +38,7 @@ if (mysqli_num_rows($out) == 0) {
 		$player_count = sizeof($player_a) - 1;
 		$max_players = intval($result[1]);
 		$game_id = $result[2];
+		$auto_start = $result[4] == "1";
 
 		if ($player_count < $max_players) {
 			$players = $players . $uid . ",";
@@ -56,6 +57,40 @@ if (mysqli_num_rows($out) == 0) {
 			$stmt = $db->prepare("UPDATE players SET `user_games`=? WHERE `user_id`=?;");
 			$stmt->bind_param('ss', $current_games, $uid);
 			$stmt->execute();
+
+			if ($player_count == ($max_players - 1) && $auto_start) {
+
+				echo "STARTING";
+
+				$p_ids = explode(",", $players);
+
+				$order = array();
+				for ($i = 0; $i < count($p_ids)-1; $i++) {
+					$order[] = $p_ids[$i];
+				}
+				shuffle($order);
+
+				$game_data = "0||" . implode(",", $order) . "||";
+
+				for ($i = 0; $i < 41; $i++) {
+					$game_data .= "-1,";
+				}
+				$game_data .= "-1||";
+
+				for ($i = 0; $i < 41; $i++) {
+					$game_data .= "0,";
+				}
+				$game_data .= "0||0";
+
+				$stmt = $db->prepare("UPDATE games SET `game_data`=? WHERE `game_id`=?;");
+				$stmt->bind_param('ss', $game_data, $game_id);
+				$stmt->execute();
+
+				$stmt = $db->prepare("UPDATE games SET `game_ready`=true WHERE `game_id`=?;");
+				$stmt->bind_param('s', $game_id);
+				$stmt->execute();
+
+			}
 		} else {
 			echo "filled";
 		}

@@ -4,13 +4,14 @@ $db = mysqli_connect("localhost", "risk_game", "", "riskdb");
 
 $username = $_POST['name'];
 $password = $_POST['pass']; 
+$mode = $_POST['mode'];
 
 if ($username == "" || $password == "") {
 	echo "Please supply a username and password.";
 	exit();
 }
 
-if (isset($_POST['new'])) {
+if ($mode == "new") {
 
 	$stmt = $db->prepare("SELECT * FROM players WHERE `user_name`= ?;");
 	$stmt->bind_param('s', $username);
@@ -32,7 +33,7 @@ if (isset($_POST['new'])) {
 
 	}
 
-} else if (isset($_POST['login'])) {
+} else if ($mode == "login") {
 	$stmt = $db->prepare("SELECT `user_password` FROM players WHERE `user_name`=? AND `user_password`=SHA2(?, 256);");
 	$stmt->bind_param('ss', $username, $password);
 	$stmt->execute();

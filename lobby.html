@@ -6,7 +6,6 @@
 
 			html, body {
 				height: 100%;
-				overflow: hidden;
 				margin: 0px;
 			}
 
@@ -16,18 +15,35 @@
 				height: 100%;
 			}
 
+			#title {
+				width: 100%;
+				text-align: center;
+				margin-bottom: 0px;
+			}
+
+			#user {
+				margin-top: 5px;
+				width: 100%;
+				text-align: center;
+				margin-bottom: 10px;
+			}
+
 			#refresh {
 				position: absolute;
-				top: 33px;
-				width: 60px;
-				left: calc(50% - 30px);
+				top: 120px;
+				width: 70px;
+				left: calc(50% - 35px);
+				padding-left: 0px;
+				padding-right: 0px;
 			}
 
 			#logout {
 				position: absolute;
-				top: 8px;
-				width: 60px;
-				left: calc(50% - 30px);
+				top: 95px;
+				width: 70px;
+				left: calc(50% - 35px);
+				padding-left: 0px;
+				padding-right: 0px;
 			}
 
 			#browse {
@@ -137,7 +153,7 @@
 				margin: auto;
 				margin-top: 50px;
 				width: 300px;
-				height: 335px;
+				height: 395px;
 				border: 1px solid black;
 				background-color: white;
 			}
@@ -159,6 +175,12 @@
 				margin-left: 67px;
 				margin-right: 67px;
 				width: 160px;
+				margin-top: 0px;
+				margin-bottom: 20px;
+			}
+
+			#game_create .input_check {
+				margin-left: 30px;
 				margin-top: 0px;
 				margin-bottom: 20px;
 			}
@@ -268,7 +290,10 @@
 					<input id="password" type="password" placeholder="Enter Password" name="pass" class="input_box"> <br/>
 
 					<h4>Maximum Players</h4>
-					<input type="number" id="players" name="players" min="3" max="8" value="5">
+					<input type="number" id="players" name="players" min="3" max="6" value="4">
+
+					<h4>Automatically Start</h4>
+					<input type="checkbox" name="auto" class="input_check" value="on"> Start when lobby has max players
 				</form>
 				<button id="create">Create</button>
 				<button id="cancel" onclick="game_create_window.hide(); ">Cancel</button>
@@ -289,6 +314,8 @@
 		</div>
 
 		<div id="content">
+			<h1 id="title">Risk Online</h1>
+			<h3 id="user">Logged in as: Drewpew</h3>
 			<button id="refresh">Refresh</button>
 			<form action="logout.php"><button type="submit" id="logout">Log Out</button></form>
 
@@ -310,25 +337,20 @@
 
 		<script>
 
-			function post(path, params) {
-				var form = document.createElement("form");
-				form.setAttribute("method", "post");
-				form.setAttribute("action", path);
+			function cookieToDict(cookie) {
+				var out = {};
+				var parts = cookie.split(";");
 
-				for(var key in params) {
-					if( params.hasOwnProperty(key) ) {
-						var hiddenField = document.createElement("input");
-						hiddenField.setAttribute("type", "hidden");
-						hiddenField.setAttribute("name", key);
-						hiddenField.setAttribute("value", params[key]);
-
-						form.appendChild(hiddenField);
-					}
+				for (var i = 0; i < parts.length; i++) {
+					parts[i] = parts[i].trim();
+					var kv = parts[i].split("=");
+					out[kv[0]] = kv[1];
 				}
 
-				document.body.appendChild(form);
-				form.submit();
+				return out;
 			}
+			var c = cookieToDict(document.cookie);
+			$("#user").text("Logged in as: " + c.name);
 
 			var game_create_window = $("#game_create");
 			game_create_window.hide();
@@ -353,6 +375,7 @@
 			var joined_wanted_players = [];
 			var joined_started = [];
 			var joined_id = [];
+			var joined_auto = [];
 
 			function joinSelected() {
 				var data = {name:$("#enter_password #name").val(), pass:$("#enter_password #password").val()};
@@ -375,16 +398,18 @@
 			}
 
 			function refresh() {
-				browse_names = [];
-				browse_pass = [];
-				browse_players = [];
-				browse_wanted_players = [];
+				browse_names.length = 0;
+				browse_pass.length = 0;
+				browse_players.length = 0;
+				browse_wanted_players.length = 0;
 
-				joined_names = [];
-				joined_host = [];
-				joined_players = [];
-				joined_wanted_players = [];
-				joined_started = [];
+				joined_names.length = 0;
+				joined_host.length = 0;
+				joined_players.length = 0;
+				joined_wanted_players.length = 0;
+				joined_started.length = 0;
+				joined_id.length = 0;
+				joined_auto.length = 0;
 
 				$.post("game_data.php", function(data) {
 					lobbies = data.split("~~");
@@ -399,8 +424,9 @@
 						var ready = lobby[3] === "1";
 						var players_wanted = parseInt(lobby[4]);
 						var joined = lobby[5] === "1";
-						var num_players = parseInt(lobby[6]);
-						var is_host = lobby[7] === "1";
+						var auto_start = lobby[6] === "1";
+						var num_players = parseInt(lobby[7]);
+						var is_host = lobby[8] === "1";
 
 						if (joined) {
 							joined_id.push(id);
@@ -409,6 +435,7 @@
 							joined_players.push(num_players);
 							joined_wanted_players.push(players_wanted);
 							joined_started.push(ready);
+							joined_auto.push(auto_start);
 						} else if (!ready) {
 							browse_names.push(name);
 							browse_pass.push(pass === "1");
@@ -449,6 +476,7 @@
 					} else {
 						new_item.append("<p>Requires Password: No</p>");
 					}
+					
 					new_item.append("<p>Players: " + browse_players[i].toString() + " / " + browse_wanted_players[i].toString() + " </p>");
 
 					var joinButton = $("<button class='mainbutton'>Join</button>");
@@ -485,19 +513,35 @@
 					} else {
 						new_item.append("<p>Am Host: No</p>");
 					}
-					new_item.append("<p>Players: " + joined_players[i].toString() + " / " + joined_wanted_players[i].toString() + " </p>");
+
+					if (joined_auto[i] && joined_host[i] && !joined_started[i]) {
+						new_item.append("<p>Players: " + joined_players[i].toString() + " / " + joined_wanted_players[i].toString() + " (will auto start) </p>");
+					} else {
+						new_item.append("<p>Players: " + joined_players[i].toString() + " / " + joined_wanted_players[i].toString() + " </p>");
+					}
+					
 					if (joined_host[i]) {
 						if (!joined_started[i]) {
 							var startButton = $("<button class='mainbutton'>Start</button>");
 							startButton.val(i.toString());
 							startButton.click(function (e) { 
 								var index = parseInt(e.target.value);
-								$.post("start_game.php", "gid="+joined_id[index].toString(), refresh); 
+								$.post("start_game.php", "gid="+joined_id[index].toString(), function (data) {
+									refresh();
+								}); 
 							});
 							new_item.append(startButton);
 						}
 
-						new_item.append("<button class='secondbutton'>Disband</button>");
+						var disbandButton = $("<button class='secondbutton'>Disband</button>");
+						disbandButton.val(i.toString());
+						disbandButton.click(function (e) {
+							var index = parseInt(e.target.value);
+							$.post("disband.php", "gid="+joined_id[index].toString(), function (data) {
+								refresh();
+							}); 
+						});
+						new_item.append(disbandButton);
 					} else {
 						new_item.append("<button class='mainbutton'>Leave</button>");
 					}

@@ -34,30 +34,65 @@
 			}
 
 			#login {
-				width: 60px;
-				margin-left: 88px;
+				width: 70px;
+				margin-left: 78px;
+				padding-left: 0px;
+				padding-right: 0px;
 			}
 
 			#create {
-				width: 60px;
-				margin-right: 88px;
+				width: 70px;
+				margin-right: 78px;
+				padding-left: 0px;
+				padding-right: 0px;
 			}
 
 		</style>
+
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 	</head>
 	<body>
 		<div id="center">
 			<h2>Log In or Create Account</h2>
 
-			<form action="handle_user.php" method="POST">
+			<form action="handle_user.php" method="POST" id="log">
 				<h4>Username</h4>
 				<input id="username" type="text" placeholder="Enter Username" name="name"> <br/>
 
 				<h4>Password</h4>
 				<input id="password" type="password" placeholder="Enter Password" name="pass"> <br/>
+				<input id="mode" name="mode" style="display: none">
 
-				<button id="login" type="submit" name="login">Log In</button> <button id="create" type="submit" name="new">Create</button>
+				<button id="login">Log In</button> <button id="create">Create</button>
 			</form>
 		</div>
+
+		<script type="text/javascript">
+			var re = new RegExp("^[A-Za-z0-9_]{1,15}$");
+
+			$("#login").click(function (e) {
+				if (re.test($("#username").val())) {
+					$("#mode").val("login");
+					document.getElementById("log").submit();
+				} else {
+					alert("Invalid username.");
+					$("#username").val("");
+					$("#password").val("");
+				}
+			});
+
+			$("#create").click(function (e) {
+				if (re.test($("#username").val())) {
+					$("#mode").val("new");
+					document.getElementById("log").submit();
+				} else {
+					alert("Invalid username.");
+					$("#username").val("");
+					$("#password").val("");
+				}
+			});
+
+			
+		</script>
 	</body>
 </html>

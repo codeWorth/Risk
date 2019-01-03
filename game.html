@@ -225,6 +225,8 @@
 						transfer();
 					} else if (k === "playReinforce") {
 						playReinforce();
+					} else if (k === "dc") {
+						window.location.href = "lobby.html";
 					} else {
 						console.log("UNHANDELED: " + k);
 					}
@@ -603,16 +605,11 @@
 
 				confirm_button.innerText = "Move";
 				confirm_button.style.visibility = "visible";
-				finish_button.innerText = "Finish Moves";
-				finish_button.style.visibility = "visible";
+				finish_button.style.visibility = "hidden";
 				cancel_button.style.visibility = "hidden";
 
 				confirm_button.onclick = function () {
 					webS.send("confirmReinforce||");
-				}
-
-				finish_button.onclick = function () {
-					webS.send("finishReinforce||");
 				}
 			}
 
