@@ -3,8 +3,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os
 
-folder = "Risk_Game_Masks"
-img_names = os.listdir(folder)[1:]
+folder = "Risk_Game_Masks_2"
+img_names = os.listdir(folder)#[1:]
 
 for img_name in img_names:
 	print("Processing", img_name)
