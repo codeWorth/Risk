@@ -80,7 +80,32 @@ if (mysqli_num_rows($out) == 0) {
 				for ($i = 0; $i < 41; $i++) {
 					$game_data .= "0,";
 				}
-				$game_data .= "0||0";
+				$game_data .= "0||0||";
+
+				$troopsPer = 0;
+				$n_players = count($p_ids)-1;
+				if ($n_players < 3) {
+					exit();
+				} else if ($n_players == 3) {
+					$troopsPer = 35;
+				} else if ($n_players == 4) {
+					$troopsPer = 30;
+				} else if ($n_players == 5) {
+					$troopsPer = 25;
+				} else if ($n_players == 6) {
+					$troopsPer = 20;
+				} else {
+					exit();
+				}
+				for ($i = 0; $i < $n_players-1; $i++) {
+					$game_data .= $troopsPer . ",";
+				}
+				$game_data .= $troopsPer . "||";
+
+				for ($i = 0; $i < 41; $i++) {
+					$game_data .= "-1,";
+				}
+				$game_data .= "-1";
 
 				$stmt = $db->prepare("UPDATE games SET `game_data`=? WHERE `game_id`=?;");
 				$stmt->bind_param('ss', $game_data, $game_id);

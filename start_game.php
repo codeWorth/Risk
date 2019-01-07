@@ -63,7 +63,12 @@ if ($n_players < 3) {
 for ($i = 0; $i < $n_players-1; $i++) {
 	$game_data .= $troopsPer . ",";
 }
-$game_data .= $troopsPer;
+$game_data .= $troopsPer . "||";
+
+for ($i = 0; $i < 41; $i++) {
+	$game_data .= "-1,";
+}
+$game_data .= "-1";
 
 $stmt = $db->prepare("UPDATE games SET `game_data`=? WHERE `game_id`=?;");
 $stmt->bind_param('ss', $game_data, $gid);

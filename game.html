@@ -166,6 +166,32 @@
 				box-shadow: 0 0 5px -1px rgba(0,0,0,0.6);
 			}
 
+			#cards {
+				position: fixed;
+				right: 30px;
+				bottom: 30px;
+				border: 1px solid black;
+
+				-webkit-transition-property: width height background-color;
+				-webkit-transition-duration: 0.5s;
+				-webkit-transition-timing-function: ease-in-out;
+				transition-property: width height background-color;
+				transition-duration: 0.5s;
+				transition-timing-function: ease-in-out;
+			}
+
+			.cards-small {
+				width: 30px;
+				height: 30px;
+				background: rgba(65, 65, 65, 0.8);
+			}
+
+			.cards-normal {
+				width: 300px;
+				height: 168px;
+				background: rgba(65, 65, 65, 0.2);
+			}
+
 		</style>
 
 		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -174,6 +200,7 @@
 
 		<canvas id="game_back" width="2800" height="1400"></canvas>
 		<canvas id="game" width="2800" height="1400"></canvas>
+		<canvas id="cards" class="cards-normal" width="300" height="168"></canvas>
 		<div id="troop_count">5</div>
 		<div id="confirm_action">Confirm</div>
 		<div id="cancel_attack">Cancel</div>
@@ -202,6 +229,7 @@
 						targetCountry = g.targetCountry;
 
 						ownerIndex = g.ownerIndex;
+						cardOwnerIndex = g.cardOwnerIndex;
 						troopsOn = g.troopsOn;
 						playerOrder = g.playerOrder;
 						gameName = g.gameName;
@@ -240,6 +268,9 @@
 			var canvas = document.getElementById("game");
 			var ctx_back = back_canvas.getContext('2d');
 			var ctx = canvas.getContext('2d');
+			var cardsCanv = document.getElementById("cards");
+			var cardsCtx = cardsCanv.getContext("2d");
+			var cardsObj = $("#cards");
 
 			var troopsIcon = document.getElementById("troop_count");
 			var confirm_button = document.getElementById("confirm_action");
@@ -251,6 +282,13 @@
 			var playerColors = ["rgba(80, 230, 80, 0.5)", "rgba(0, 0, 255, 0.5)", "rgba(130, 130, 130, 0.5)", "rgba(200, 0, 200, 0.5)"];
 
 			var prefix = "http://54.193.93.44/";
+
+			var planeIcon = new Image;
+			planeIcon.src = prefix + "plane_trans.png";
+			var tankIcon = new Image;
+			tankIcon.src = prefix + "tank_trans.png";
+			var soldierIcon = new Image;
+			soldierIcon.src = prefix + "soldier_trans.png";
 
 			var backImg = new Image;
 			backImg.onload = function () {
@@ -330,12 +368,92 @@
 				return canv;
 			}
 
+			function createCard(country_img, country_color, type_img) {
+				var r = 20*2;
+				var w = 120*2;
+				var h = 168*2;
+				var icon_h = 45*2;
+				var pad = 8*2;
+
+				var country_h_max = h - icon_h - pad*3;
+
+				var card = document.createElement('canvas');
+				var cardCtx = card.getContext('2d');
+
+				card.width = w;
+				card.height = h;
+
+				cardCtx.fillStyle = "white";
+
+				cardCtx.fillRect(0,0, w, h);
+				cardCtx.clearRect(0,0, r, r);
+				cardCtx.clearRect(w-r, 0, r, r);
+				cardCtx.clearRect(0, h-r, r, r);
+				cardCtx.clearRect(w-r, h-r, r, r);
+
+				cardCtx.beginPath();
+				cardCtx.arc(r, r, r, 0, Math.PI*2, true);
+				cardCtx.closePath();
+				cardCtx.fill();
+
+				cardCtx.beginPath();
+				cardCtx.arc(w-r, r, r, 0, Math.PI*2, true);
+				cardCtx.closePath();
+				cardCtx.fill();
+
+				cardCtx.beginPath();
+				cardCtx.arc(r, h-r, r, 0, Math.PI*2, true);
+				cardCtx.closePath();
+				cardCtx.fill();
+
+				cardCtx.beginPath();
+				cardCtx.arc(w-r, h-r, r, 0, Math.PI*2, true);
+				cardCtx.closePath();
+				cardCtx.fill();
+
+				var grd = ctx.createLinearGradient(0, -h, 0, h);
+				grd.addColorStop(0, country_color);
+				grd.addColorStop(1, "white");
+
+				cardCtx.save();
+				cardCtx.globalCompositeOperation = "source-in";
+				cardCtx.fillStyle = grd;
+				cardCtx.fillRect(0,0, w, h);
+
+				var c = createColoredCanv(country_img, country_color);
+
+				var draw_w = country_h_max/c.height * c.width;
+				var draw_h = (w - pad*2)/c.width * c.height;
+				var draw_x = pad;
+				var draw_y = pad;
+
+				if (draw_h <= country_h_max) {
+					draw_w = w - pad*2;
+					draw_y = (country_h_max - draw_h) / 2 + pad;
+				} else {
+					draw_h = country_h_max;
+					draw_x = (w - draw_w) / 2;
+				}
+
+				cardCtx.restore();
+				cardCtx.drawImage(c, draw_x, draw_y, draw_w, draw_h);
+
+				var icon_w = icon_h/type_img.height * type_img.width;
+				var icon_x = (w - icon_w) / 2;
+				cardCtx.drawImage(type_img, icon_x, country_h_max + pad*2, icon_w, icon_h);
+
+				return card;
+			}
+
 			var continents = ['asia', 'europe', 'north america', 'africa', 'australia', 'south america', 'greenland'];
+			var cont_colors = ["rgb(184, 201, 132)", "rgb(121, 173, 150)", "rgb(236, 190, 120)", "rgb(224, 226, 101)", "rgb(162, 123, 87)", "rgb(238, 202, 156)", "rgb(233, 238, 182)"];
 			var cont_troop = [7, 6, 5, 3, 2, 2, 0];
 			var cont_terrs = [12, 7, 8, 6, 4, 4, 2];
 			var country_cont = [0, 2, 2, 5, 5, 0, 3, 3, 4, 1, 2, 3, 1, 6, 1, 0, 4, 0, 0, 0, 3, 2, 0, 0, 4, 3, 1, 2, 2, 5, 2, 1, 0, 0, 3, 1, 0, 5, 4, 1, 2, 0];
 			var img_names = ['afghanistan', 'alaska', 'alberta', 'argentina', 'brazil', 'china', 'congo', 'east_africa', 'eastern_australia', 'eastern_europe', 'eastern_us', 'egypt', 'great_britian', 'greenland', 'iceland', 'india', 'indonesia', 'irkutsk', 'japan', 'kamchatka', 'madagascar', 'mexico', 'middle_eat', 'mongolia', 'new_guinea', 'north_africa', 'northern_europe', 'northwest', 'ontario', 'peru', 'quebec', 'scandinavia', 'siam', 'siberia', 'south_africa', 'ukraine', 'ural', 'venezuela', 'western_australia', 'western_europe', 'western_us', 'yakutsk'];
-			var cropped_names = ['4777x1307-684x679_trans_outline_afghanistan.png', '1033x555-609x572_trans_outline_alaska.png', '1564x886-554x423_trans_outline_alberta.png', '2301x2972-530x1070_trans_outline_argentina.png', '2212x2414-1052x953_trans_outline_brazil.png', '5353x1418-1009x908_trans_outline_china.png', '3982x2836-623x607_trans_outline_congo.png', '4294x2570-681x962_trans_outline_east_africa.png', '6507x3157-594x866_trans_outline_eastern_australia.png', '3812x1589-563x589_trans_outline_eastern_europe.png', '1954x1287-838x683_trans_outline_eastern_us.png', '3996x2266-622x371_trans_outline_egypt.png', '3245x1123-453x520_trans_outline_great_britian.png', '2616x101-835x949_trans_outline_greenland.png', '3413x845-362x248_trans_outline_iceland.png', '5134x1852-716x975_trans_outline_india.png', '5736x2804-653x525_trans_outline_indonesia.png', '5646x871-684x535_trans_outline_irkutsk.png', '6443x1204-350x674_trans_outline_japan.png', '6075x508-876x1000_trans_outline_kamchatka.png', '4753x3396-314x485_trans_outline_madagascar.png', '1654x1749-531x658_trans_outline_mexico.png', '4276x1904-948x874_trans_outline_middle_eat.png', '5697x1232-748x559_trans_outline_mongolia.png', '6370x2742-498x361_trans_outline_new_guinea.png', '3438x2149-899x937_trans_outline_north_africa.png', '3758x1199-578x554_trans_outline_northern_europe.png', '1496x474-1036x447_trans_outline_northwest.png', '2069x901-490x622_trans_outline_ontario.png', '2068x2507-732x718_trans_outline_peru.png', '2460x874-520x598_trans_outline_quebec.png', '3821x647-559x624_trans_outline_scandinavia.png', '5756x2153-470x605_trans_outline_siam.png', '5161x327-743x1227_trans_outline_siberia.png', '4059x3222-679x814_trans_outline_south_africa.png', '4198x662-915x1316_trans_outline_ukraine.png', '5030x515-529x1053_trans_outline_ural.png', '2109x2230-758x395_trans_outline_venezuela.png', '6090x3248-698x768_trans_outline_western_australia.png', '3374x1591-487x654_trans_outline_western_europe.png', '1599x1288-601x569_trans_outline_western_us.png', '5743x415-607x556_trans_outline_yakutsk.png'];
+			var type_images = [planeIcon, tankIcon, soldierIcon];
+			var card_type = [2, 1, 1, 2, 2, 2, 1, 1, 2, 0, 1, 0, 2, 0, 0, 0, 2, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 2, 0, 2, 1, 2, 2, 2, 0, 1, 2, 1, 1];	
+			var cropped_names = ['4774x1304-693x688_trans_outline_afghanistan.png', '1033x555-609x572_trans_outline_alaska.png', '1564x886-554x423_trans_outline_alberta.png', '2301x2972-530x1070_trans_outline_argentina.png', '2212x2414-1052x953_trans_outline_brazil.png', '5353x1418-1009x908_trans_outline_china.png', '3982x2836-623x607_trans_outline_congo.png', '4294x2570-681x962_trans_outline_east_africa.png', '6507x3157-594x866_trans_outline_eastern_australia.png', '3812x1589-563x589_trans_outline_eastern_europe.png', '1954x1287-838x683_trans_outline_eastern_us.png', '3996x2266-622x371_trans_outline_egypt.png', '3245x1123-453x520_trans_outline_great_britian.png', '2616x101-835x949_trans_outline_greenland.png', '3413x845-362x248_trans_outline_iceland.png', '5134x1852-716x975_trans_outline_india.png', '5736x2804-653x525_trans_outline_indonesia.png', '5646x871-684x535_trans_outline_irkutsk.png', '6443x1204-350x674_trans_outline_japan.png', '6075x508-876x1000_trans_outline_kamchatka.png', '4753x3396-314x485_trans_outline_madagascar.png', '1654x1749-531x658_trans_outline_mexico.png', '4276x1904-948x874_trans_outline_middle_eat.png', '5697x1232-748x559_trans_outline_mongolia.png', '6370x2742-498x361_trans_outline_new_guinea.png', '3438x2149-899x937_trans_outline_north_africa.png', '3758x1199-578x554_trans_outline_northern_europe.png', '1496x474-1036x447_trans_outline_northwest.png', '2069x901-490x622_trans_outline_ontario.png', '2068x2507-732x718_trans_outline_peru.png', '2460x874-520x598_trans_outline_quebec.png', '3821x647-559x624_trans_outline_scandinavia.png', '5756x2153-470x605_trans_outline_siam.png', '5161x327-743x1227_trans_outline_siberia.png', '4059x3222-679x814_trans_outline_south_africa.png', '4198x662-915x1316_trans_outline_ukraine.png', '5030x515-529x1053_trans_outline_ural.png', '2109x2230-758x395_trans_outline_venezuela.png', '6090x3248-698x768_trans_outline_western_australia.png', '3374x1591-487x654_trans_outline_western_europe.png', '1599x1288-601x569_trans_outline_western_us.png', '5743x415-607x556_trans_outline_yakutsk.png'];
 			var xs = [];
 			var ys = [];
 			var ws = [];
@@ -354,6 +472,8 @@
 			var target_outlines = [];
 
 			var ownerIndex = [];
+			var cardOwnerIndex = [];
+			var selectedCard = -1;
 			var troopsOn = [];
 			var userID = 0;
 			var playerOrder = [];
@@ -396,6 +516,23 @@
 				hs.push(parseInt(sz.split("x")[1]));
 			}
 
+			var cards = [];
+			for (var i = 0; i < cropped_names.length; i++) {
+				var overImg = new Image;
+				overImg.k = i;
+				cards.push(overImg);
+
+				overImg.onload = function (e) {
+					var k = e.target.k;
+					var cont_i = country_cont[k];
+					var type_i = card_type[k];
+
+					cards[k] = createCard(cards[k], cont_colors[cont_i], type_images[type_i]);
+				}
+
+				overImg.src = prefix + "Risk_Game_Masks/" + cropped_names[i];
+			}
+
 			function draw() {
 				ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -416,6 +553,8 @@
 					} else {
 						ctx.drawImage(highlight_outlines[highlightedCountry], highX, highY, highW, highH);
 					}
+
+					// ctx.drawImage(cards[highlightedCountry], highX, highY, 120, 168);
 				}
 
 				if (sourceCountry != -1 && myTurn) {
@@ -486,19 +625,27 @@
 					cancel_button.style.visibility = "hidden";
 					finish_button.style.visibility = "hidden";
 				}
+
+				var myCards = [];
+				var initial = selectedCard;
+				if (initial == -1) {
+					initial = 0;
+				}
+				for (var i = initial; i < cardOwnerIndex.length; i++) {
+					if (cardOwnerIndex[i] == userID) {
+						myCards.push(i);
+					}
+				}
+
+
 			}
 
-			document.body.onmousedown = function (e) {
+			$("canvas").click(function (e) {
 				var x = e.pageX;
 				var y = e.pageY;
 
-				if ($("#confirm_action").css("background-color") === "rgba(65, 65, 65, 0.5)") {
-					return;
-				}
-				if ($("#finish_action").css("background-color") === "rgba(65, 65, 65, 0.5)") {
-					return;
-				}
-				if ($("#cancel_attack").css("background-color") === "rgba(65, 65, 65, 0.5)") {
+				var bBox = cardsCanv.getBoundingClientRect();
+				if (e.clientX >= bBox.x && e.clientY >= bBox.y && e.clientX <= bBox.x + bBox.width && e.clientY <= bBox.y + bBox.height) {
 					return;
 				}
 				
@@ -507,7 +654,7 @@
 				if (myTurn) {
 					webS.send("down||" + index.toString());
 				}
-			}
+			});
 
 			var lastHovered = 255;
 
@@ -544,6 +691,14 @@
 					webS.send("shift||false~~move||" + lastHovered.toString());
 				}
 			}
+			
+			cardsObj.click(function (){
+				if (cardsObj.attr("class") == "cards-normal") {
+					cardsObj.attr("class", "cards-small");
+				} else {
+					cardsObj.attr("class", "cards-normal");
+				}
+			});
 
 			function transfer() {
 				transferMode = true;
